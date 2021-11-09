@@ -1,0 +1,341 @@
+---
+title: "Usings contrasts to provide effect estimates and CIs effects we may want to report"
+output:
+  html_document:
+    toc: yes
+    keep_md: true
+  pdf_document:
+    toc: yes
+---
+
+```{r,message=FALSE}
+library(tidyverse)
+library(survey)
+library(plyr)
+library(dplyr)
+library(factoextra)
+library(labelled)
+library(tableone)
+library(memisc)
+library(jtools)
+library(Publish)
+library(dummies)
+```
+# Setting up working directory
+```{r}
+base_path <- "~/Dropbox (Partners HealthCare)/SOL_misc_genetics/survey_gen_test_utilization/20210917_data_code/"
+data_file <- paste0(base_path, "Processed_data/20210918_gte_data_set_with_covariates_and_IPW.RData")
+```
+
+
+# Computing effect estimates for significant differences
+For every effect estimate that had p-value<0.05, we here compute an estimate (making sure we are comparing "extreme" factors) and 95% confidence interval. We also compute (weighted) proportions. This is useful because we can use this to put results in the text. 
+
+# Load the data and prepare the model
+
+```{r}
+data_gte <- readRDS(data_file)
+nrow(data_gte)
+
+data_gte$aware <- NA
+data_gte$aware[which(data_gte$GTE1 == 1 | 
+                         data_gte$GTE2 == 1 | 
+                         data_gte$GTE3 == 1 | 
+                         data_gte$GTE4 == 1)] <- 1
+data_gte$aware[which(is.na(data_gte$aware) & 
+                         (data_gte$GTE1 == 0 | 
+                         data_gte$GTE2 == 0 | 
+                         data_gte$GTE3 == 0 | 
+                         data_gte$GTE4 == 0))] <- 0
+
+table(data_gte$aware)
+
+data_gte$GTE1[which(data_gte$GTE1 == 9)] <- NA
+data_gte$GTE2[which(data_gte$GTE2 == 9)] <- NA
+data_gte$GTE3[which(data_gte$GTE3 == 9)] <- NA
+data_gte$GTE4[which(data_gte$GTE4 == 9)] <- NA
+
+```
+
+
+
+# Prreparing dummy variables of interest
+Creating dummy variables in preparation for computing contrast
+```{r}
+data_gte$income_10000 <- ifelse(data_gte$Income_level=="Less than $10,000",1,0)
+data_gte$income_20000 <- ifelse(data_gte$Income_level=="$10,001-$20,000",1,0)
+data_gte$income_40000 <- ifelse(data_gte$Income_level=="$20,001-$40,000",1,0)
+data_gte$income_75000 <- ifelse(data_gte$Income_level=="$40,001-$75,000",1,0)
+data_gte$income_75000_high <- ifelse(data_gte$Income_level=="More than $75,000",1,0)
+
+data_gte$Pref_english <- ifelse(data_gte$Language_pref == "English", 1, 0)
+data_gte$Pref_spanish <- ifelse(data_gte$Language_pref == "Spanish", 1, 0)
+
+data_gte$age_40 <- ifelse(data_gte$AGE=="<40",1,0)
+data_gte$age_60 <- ifelse(data_gte$AGE=="41-60",1,0)
+data_gte$age_60_high <- ifelse(data_gte$AGE=="61<",1,0)
+
+data_gte$us_born_yes <- ifelse(data_gte$US_BORN=="Yes",1,0)
+data_gte$us_born_no <- ifelse(data_gte$US_BORN=="No",1,0)
+
+data_gte$center_bronx <- ifelse(data_gte$CENTER=="Bronx",1,0)
+data_gte$center_miami <- ifelse(data_gte$CENTER=="Miami",1,0)
+data_gte$center_chicago <- ifelse(data_gte$CENTER=="Chicago",1,0)
+data_gte$center_sandiego <- ifelse(data_gte$CENTER=="San Diego",1,0)
+
+# marital status
+data_gte$Marital_status_single <- ifelse(data_gte$Marital_status=="Single",1,0)
+data_gte$Marital_status_partner <- ifelse(data_gte$Marital_status=="Married or living with a partner",1,0)
+data_gte$Marital_status_separate <- ifelse(data_gte$Marital_status=="Separated,divorced,or widow(er)",1,0)
+
+
+
+# education level
+data_gte$edu_less_12 <- ifelse(data_gte$Education=="<12",1,0)
+data_gte$edu_12 <- ifelse(data_gte$Education=="12",1,0)
+data_gte$edu_more_12 <- ifelse(data_gte$Education==">12",1,0)
+
+survey_gte <- svydesign(id=~PSU_ID, strata=~STRAT, weights=~IPW , data=data_gte)
+survey_trim <- trimWeights(survey_gte,upper = 30)
+```
+
+# Create a function of computing p_value from chi-square test
+```{r}
+contrast_OR_pval <- function(contrast, model){
+  
+  contrast <- as.data.frame(contrast)[1,]
+	t_stat <- as.numeric(abs(contrast[1]/contrast[2]))
+	OR <- as.numeric(exp(contrast[1]))
+	df <- model$df.residual
+	Z <- qt(0.975,df = df, ncp=0, lower.tail = TRUE)
+	pval <- (1-pt(t_stat, df =df, lower.tail = TRUE))*2
+	CI <- c(as.numeric(contrast[1] - Z*contrast[2]), as.numeric(contrast[1] + Z*contrast[2]))
+	return(list(OR= round(OR,2), pval = pval, CI=  round(exp(CI),2)))
+}
+```
+
+## Education comparison
+```{r}
+model_aware_edu <- svyglm(aware~AGE+SEX+edu_less_12+edu_more_12 + 
+                                Income_level+ 
+                                CENTER  + 
+                               Current_Health_insurance+
+                               Physician_Visit+Background+Language_pref+
+                               Marital_status+Employment_status+US_BORN,
+                             design=survey_trim,na.action=na.omit,family=quasibinomial())
+contrast <- svycontrast(model_aware_edu, list(diff=c(edu_more_12=1, edu_less_12=-1)))
+contrast_OR_pval(contrast,model_aware_edu)
+
+# also compute proportion of awareness by education groups:
+svyby(~aware, ~Education,survey_trim, svyciprop)
+
+```
+
+
+## Miami and Chicago comparison
+```{r}
+model_aware_center <- svyglm(aware~AGE+SEX+Education+
+                                Income_level+ 
+                                center_chicago +
+                               center_sandiego + center_miami + 
+                               Current_Health_insurance+
+                               Physician_Visit+Background+Language_pref+
+                               Marital_status+Employment_status+US_BORN,
+                             design=survey_trim,na.action=na.omit,family=quasibinomial())
+contrast <- svycontrast(model_aware_center, list(diff=c(center_miami=1, center_chicago=-1)))
+contrast_OR_pval(contrast,model_aware_center)
+
+# just reverse the order...
+contrast <- svycontrast(model_aware_center, list(diff=c(center_chicago=-1, center_miami=1)))
+contrast_OR_pval(contrast,model_aware_center)
+
+# compute proportions:
+svyby(~aware, ~CENTER,survey_trim, svyciprop)
+```
+
+Number of complete cases used in the analysis: `r length(model_aware_center$y)`.
+
+## Marital status
+```{r}
+model_drug_marital <- svyglm(aware~AGE+SEX+Education+
+                                Income_level+ 
+                                CENTER + Language_pref  + 
+                               Marital_status_separate + Marital_status_single + 
+                               Current_Health_insurance+
+                               Physician_Visit+Background+
+                               Marital_status+Employment_status+US_BORN,
+                            design=survey_trim,na.action=na.omit,family=quasibinomial())
+
+contrast <- svycontrast(model_drug_marital, list(diff=c(Marital_status_separate=1, Marital_status_single=-1)))
+contrast_OR_pval(contrast,model_drug_marital)
+
+# compute proportions:
+svyby(~aware, ~Marital_status,survey_trim, svyciprop)
+```
+
+## Income comparison
+```{r}
+model_aware_income <- svyglm(aware~AGE+SEX+Education+
+                                income_10000 + income_75000_high + 
+                               income_75000 + income_20000 + 
+                                CENTER + 
+                               Current_Health_insurance+
+                               Physician_Visit+Background+Language_pref+
+                               Marital_status+Employment_status+US_BORN,
+                             design=survey_trim,na.action=na.omit,family=quasibinomial())
+contrast <- svycontrast(model_aware_income, list(diff=c(income_75000_high=1, income_10000=-1)))
+contrast_OR_pval(contrast,model_aware_income)
+
+# compute proportions:
+svyby(~aware, ~Income_level,survey_trim, svyciprop)
+
+```
+
+
+# Contrasts based on specific genetic tests
+
+
+## Drug efficacy: separated, divorced or widdower, versus married or living with a partner.
+
+```{r}
+model_drug_marital <- svyglm(GTE4~AGE+SEX+Education+
+                                Income_level+ 
+                                CENTER + Language_pref  + 
+                               Marital_status_separate + Marital_status_partner + 
+                               Current_Health_insurance+
+                               Physician_Visit+Background+
+                               Marital_status+Employment_status+US_BORN,
+                            design=survey_trim,na.action=na.omit,family=quasibinomial())
+
+contrast <- svycontrast(model_drug_marital, list(diff=c(Marital_status_separate=1, Marital_status_partner=-1)))
+contrast_OR_pval(contrast,model_drug_marital)
+
+# compute proportions:
+svyby(~GTE4, ~Marital_status,survey_trim, svyciprop)
+```
+
+# separate versus single
+
+```{r}
+model_drug_marital <- svyglm(GTE4~AGE+SEX+Education+
+                                Income_level+ 
+                                CENTER + Language_pref  + 
+                               Marital_status_separate + Marital_status_single + 
+                               Current_Health_insurance+
+                               Physician_Visit+Background+
+                               Employment_status+US_BORN,
+                            design=survey_trim,na.action=na.omit,family=quasibinomial())
+
+contrast <- svycontrast(model_drug_marital, list(diff=c(Marital_status_separate=1, Marital_status_single=-1)))
+contrast_OR_pval(contrast,model_drug_marital)
+
+# compute proportions:
+svyby(~GTE4, ~Marital_status,survey_trim, svyciprop)
+```
+## Compute proportions of population groups with awareness - disease risk
+
+```{r}
+
+# by sex
+svyby(~GTE1, ~SEX,survey_trim, svyciprop)
+
+# by education
+svyby(~GTE1, ~Education,survey_trim, svyciprop)
+
+# by center
+svyby(~GTE1, ~CENTER,survey_trim, svyciprop)
+
+
+# by income
+svyby(~GTE1, ~Income_level,survey_trim, svyciprop)
+
+# by background
+svyby(~GTE1, ~Background,survey_trim, svyciprop)
+```
+## Compute proportions of population groups with awareness - risk to children
+
+```{r}
+
+# by sex
+svyby(~GTE2, ~SEX,survey_trim, svyciprop)
+
+# by education
+svyby(~GTE2, ~Education,survey_trim, svyciprop)
+
+# by center
+svyby(~GTE2, ~CENTER,survey_trim, svyciprop)
+
+
+# by income
+svyby(~GTE2, ~Income_level,survey_trim, svyciprop)
+
+# by background
+svyby(~GTE2, ~Background,survey_trim, svyciprop)
+```
+
+
+
+## Compute proportions of population groups with awareness - personalized treatment
+
+```{r}
+
+# by sex
+svyby(~GTE3, ~SEX,survey_trim, svyciprop)
+
+# by education
+svyby(~GTE3, ~Education,survey_trim, svyciprop)
+
+# by center
+svyby(~GTE3, ~CENTER,survey_trim, svyciprop)
+
+
+# by income
+svyby(~GTE3, ~Income_level,survey_trim, svyciprop)
+
+# by background
+svyby(~GTE3, ~Background,survey_trim, svyciprop)
+
+# by age
+svyby(~GTE3, ~AGE,survey_trim, svyciprop)
+
+
+# by employment status
+svyby(~GTE3, ~Employment_status,survey_trim, svyciprop)
+```
+
+
+
+
+## Compute proportions of population groups with awareness - drug efficacy
+
+```{r}
+
+# by sex
+svyby(~GTE4, ~SEX,survey_trim, svyciprop)
+
+# by education
+svyby(~GTE4, ~Education,survey_trim, svyciprop)
+
+# by center
+svyby(~GTE4, ~CENTER,survey_trim, svyciprop)
+
+
+# by income
+svyby(~GTE4, ~Income_level,survey_trim, svyciprop)
+
+# by background
+svyby(~GTE4, ~Background,survey_trim, svyciprop)
+
+# by age
+svyby(~GTE4, ~AGE,survey_trim, svyciprop)
+
+
+# by employment status
+svyby(~GTE4, ~Employment_status,survey_trim, svyciprop)
+
+# by language preference
+svyby(~GTE4, ~Language_pref,survey_trim, svyciprop)
+```
+
+
+

@@ -1,0 +1,229 @@
+---
+title: "Logistic regression of genetic testing awareness"
+output: 
+  html_document:
+    toc: true
+    keep_md: true
+---
+
+
+```{r}
+library(tidyverse)
+library(survey)
+library(plyr)
+library(dplyr)
+library(factoextra)
+library(labelled)
+library(memisc)
+library(jtools)
+library(Publish)
+library(gtsummary)
+library(flextable)
+```
+
+# Setting up working directory
+```{r}
+base_path <- "~/Dropbox (Partners HealthCare)/SOL_misc_genetics/survey_gen_test_utilization/20210917_data_code/"
+data_file <- paste0(base_path, "Processed_data/20210918_gte_data_set_with_covariates_and_IPW.RData")
+output_dir <- paste0(base_path, "Results")
+```
+
+# Loading the data and weight the data with IPW (trim the weights at 30)
+We need to define the composite genetic testing awareness variable (we did not keep it in the data frame generated in earlier reports)
+```{r}
+data_gte <- readRDS(data_file)
+nrow(data_gte)
+
+data_gte$aware <- NA
+data_gte$aware[which(data_gte$GTE1 == 1 | 
+                         data_gte$GTE2 == 1 | 
+                         data_gte$GTE3 == 1 | 
+                         data_gte$GTE4 == 1)] <- 1
+data_gte$aware[which(is.na(data_gte$aware) & 
+                         (data_gte$GTE1 == 0 | 
+                         data_gte$GTE2 == 0 | 
+                         data_gte$GTE3 == 0 | 
+                         data_gte$GTE4 == 0))] <- 0
+
+table(data_gte$aware)
+survey_gte <- svydesign(id=~PSU_ID, strata=~STRAT, weights=~IPW , data=data_gte)
+survey_trim <- trimWeights(survey_gte,upper = 30)
+```
+
+# Perform logistic regression of composite measure of genetic testing awareness
+
+
+```{r}
+# we just use the doctor visit variable from visit 1, and not the personal doctor from visit 2. 
+model_aware <- svyglm(aware~AGE+SEX+Education+CENTER+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=survey_trim,na.action=na.omit,family=quasibinomial())
+summary(model_aware)
+```
+
+Summarize in a nice table
+```{r}
+tbl_aware <- tbl_regression(model_aware, exponentiate = TRUE)
+tbl_aware %>%
+  as_flex_table() %>%
+  flextable::save_as_docx(path = paste0(output_dir, "/20210918_composite_awarenes_glm.docx"))
+
+```
+
+# Perform separate analysis of each of the awareness questions
+We need a supplemental table reporting results for each awareness question separately (rather than the composite awareness variable)
+```{r}
+# Look at the individual responses:
+table(data_gte$GTE1)
+table(data_gte$GTE2)
+table(data_gte$GTE3)
+table(data_gte$GTE4)
+
+# change some "refuse to respond" (values of 9) to NAs. Note that as people respond to more questions, more people refuse to respond. 
+# then we need to recreate the survey object.
+data_gte$GTE1[which(data_gte$GTE1 == 9)] <- NA
+data_gte$GTE2[which(data_gte$GTE2 == 9)] <- NA
+data_gte$GTE3[which(data_gte$GTE3 == 9)] <- NA
+data_gte$GTE4[which(data_gte$GTE4 == 9)] <- NA
+
+survey_gte <- svydesign(id=~PSU_ID, strata=~STRAT, weights=~IPW , data=data_gte)
+survey_trim <- trimWeights(survey_gte,upper = 30)
+
+model_gte1 <- svyglm(GTE1~AGE+SEX+Education+CENTER+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=survey_trim,na.action=na.omit,family=quasibinomial())
+
+model_gte2 <- svyglm(GTE2~AGE+SEX+Education+CENTER+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=survey_trim,na.action=na.omit,family=quasibinomial())
+
+model_gte3 <- svyglm(GTE3~AGE+SEX+Education+CENTER+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=survey_trim,na.action=na.omit,family=quasibinomial())
+
+model_gte4 <- svyglm(GTE4~AGE+SEX+Education+CENTER+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=survey_trim,na.action=na.omit,family=quasibinomial())
+
+```
+
+## Summarize the regressions in a table
+```{r}
+tbl_gte1 <- tbl_regression(model_gte1, exponentiate = TRUE)
+tbl_gte2 <- tbl_regression(model_gte2, exponentiate = TRUE)
+tbl_gte3 <- tbl_regression(model_gte3, exponentiate = TRUE)
+tbl_gte4 <- tbl_regression(model_gte4, exponentiate = TRUE)
+
+tbl_merge_awareness <-
+  tbl_merge(
+    tbls = list(tbl_gte1, tbl_gte2, tbl_gte3, tbl_gte4),
+    tab_spanner = c("**Disease risk**", 
+                    "**Risk to children**", 
+                    "**Personalized treatment**",
+                    "**Drug efficacy**")
+  )
+
+ftbl_merge_awarenss <- as_flex_table(tbl_merge_awareness)
+
+# function I found online here
+# https://stackoverflow.com/questions/57175351/flextable-autofit-in-a-rmarkdown-to-word-doc-causes-table-to-go-outside-page-mar
+FitFlextableToPage <- function(ft, pgwidth = 7){
+  ft_out <- ft %>% autofit()
+  ft_out <- width(ft_out, width = dim(ft_out)$widths*pgwidth /(flextable_dim(ft_out)$widths))
+  return(ft_out)
+}
+
+ftbl_merge_awarenss_w <- FitFlextableToPage(ftbl_merge_awarenss)
+flextable::save_as_docx(ftbl_merge_awarenss_w, path = paste0(output_dir, "/20210918_separate_awarenes_glm.docx"))
+
+
+```
+
+
+# Perform another analysis stratified by center. 
+We want to see if significant associations in the pooled analysis of all individuals are driven by individuals from a specific site. 
+
+```{r}
+subset_site <- subset(survey_trim, CENTER == "Miami")
+model_miami <- svyglm(aware~AGE+SEX+Education+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_site,na.action=na.omit,family=quasibinomial())
+
+subset_site <- subset(survey_trim, CENTER == "Bronx")
+model_bronx <- svyglm(aware~AGE+SEX+Education+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_site,na.action=na.omit,family=quasibinomial())
+
+subset_site <- subset(survey_trim, CENTER == "San Diego")
+model_sandiego <- svyglm(aware~AGE+SEX+Education+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_site,na.action=na.omit,family=quasibinomial())
+
+subset_site <- subset(survey_trim, CENTER == "Chicago")
+model_chicago <- svyglm(aware~AGE+SEX+Education+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_site,na.action=na.omit,family=quasibinomial())
+
+
+
+```
+
+## Summarize the center-specific regressions in a table
+```{r}
+tbl_miami <- tbl_regression(model_miami, exponentiate = TRUE)
+tbl_chicago <- tbl_regression(model_chicago, exponentiate = TRUE)
+tbl_bronx <- tbl_regression(model_bronx, exponentiate = TRUE)
+tbl_sandiego <- tbl_regression(model_sandiego, exponentiate = TRUE)
+
+tbl_merge_center <-
+  tbl_merge(
+    tbls = list(tbl_bronx, tbl_chicago, tbl_miami, tbl_sandiego),
+    tab_spanner = c("**Bronx**", 
+                    "**Chicago**", 
+                    "**Miami**",
+                    "**San Diego**")
+  )
+
+ftbl_merge_center <- as_flex_table(tbl_merge_center)
+
+
+ftbl_merge_center_w <- FitFlextableToPage(ftbl_merge_center)
+flextable::save_as_docx(ftbl_merge_center_w, path = paste0(output_dir, "/20210918_awarenes_glm_by_center.docx"))
+
+
+```
+
+# Because San Diego have mostly Mexicans, redo San Diego analysis without background
+
+```{r}
+
+subset_site <- subset(survey_trim, CENTER == "San Diego")
+model_sandiego <- svyglm(aware~AGE+SEX+Education+Income_level+Current_Health_insurance+Physician_Visit+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_site,na.action=na.omit,family=quasibinomial())
+
+tbl_sandiego <- tbl_regression(model_sandiego, exponentiate = TRUE)
+
+tbl_sandiego %>%
+  as_flex_table() %>%
+  flextable::save_as_docx(path = paste0(output_dir, "/20211012_awarenes_glm_by_san_diego_no_background.docx"))
+
+
+```
+
+
+# Perform another analysis stratified by gender. 
+Another secondary analysis to allow for checking whether some results differ between women and men. 
+
+```{r}
+subset_sex <- subset(survey_trim, SEX == "Female")
+model_female <- svyglm(aware~AGE+Education+CENTER+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_sex,na.action=na.omit,family=quasibinomial())
+
+subset_sex <- subset(survey_trim, SEX == "Male")
+model_male <- svyglm(aware~AGE+Education+CENTER+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_sex,na.action=na.omit,family=quasibinomial())
+
+
+tbl_female <- tbl_regression(model_female, exponentiate = TRUE)
+tbl_male <- tbl_regression(model_male, exponentiate = TRUE)
+
+tbl_merge_sex <-
+  tbl_merge(
+    tbls = list(tbl_female, tbl_male),
+    tab_spanner = c("**Women**", 
+                    "**Men**")
+  )
+
+ftbl_merge_sex <- as_flex_table(tbl_merge_sex)
+
+
+ftbl_merge_sex_w <- FitFlextableToPage(ftbl_merge_sex)
+flextable::save_as_docx(ftbl_merge_sex_w, path = paste0(output_dir, "/20210918_awarenes_glm_by_gender.docx"))
+
+```
+
+
+
+# version:
+```{r}
+sessionInfo()
+```

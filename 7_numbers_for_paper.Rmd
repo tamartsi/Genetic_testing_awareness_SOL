@@ -1,0 +1,113 @@
+---
+title: "Using code to extract numbers for the manuscript"
+output: 
+  html_document:
+    toc: true
+    keep_md: true
+---
+
+
+
+
+
+```{r,message=FALSE}
+library(tidyverse)
+library(survey)
+library(plyr)
+library(dplyr)
+library(factoextra)
+library(labelled)
+library(tableone)
+library(memisc)
+library(jtools)
+library(Publish)
+```
+
+
+# Setting up working directory
+```{r}
+base_path <- "~/Dropbox (Partners HealthCare)/SOL_misc_genetics/survey_gen_test_utilization/20210917_data_code/"
+data_file <- paste0(base_path, "Processed_data/20210918_gte_data_set_with_covariates_and_IPW.RData")
+output_dir <- paste0(base_path, "Results")
+visit1_covariates_file <- paste0(base_path, "/Processed_data/20210917_organized_visit1_covariates.RData")
+```
+
+
+
+# read the data and format variables as necessary
+
+```{r}
+data_gte <- readRDS(data_file)
+
+# combined awareness variable:
+
+data_gte$aware <- NA
+data_gte$aware[which(data_gte$GTE1 == 1 | 
+                         data_gte$GTE2 == 1 | 
+                         data_gte$GTE3 == 1 | 
+                         data_gte$GTE4 == 1)] <- 1
+data_gte$aware[which(is.na(data_gte$aware) & 
+                         (data_gte$GTE1 == 0 | 
+                         data_gte$GTE2 == 0 | 
+                         data_gte$GTE3 == 0 | 
+                         data_gte$GTE4 == 0))] <- 0
+
+# change "refuse to respond" to the individual awareness items to NAs:
+data_gte$GTE1[which(data_gte$GTE1 == 9)] <- NA
+data_gte$GTE2[which(data_gte$GTE2 == 9)] <- NA
+data_gte$GTE3[which(data_gte$GTE3 == 9)] <- NA
+data_gte$GTE4[which(data_gte$GTE4 == 9)] <- NA
+
+# creating composite "offered" and "received" responses:
+# we assume that all non-responses indicate no offer of test.
+# this is reasonable due to skip pattern.
+data_gte$offered <- 0
+data_gte$offered[which(data_gte$GTE1A == "1" | 
+                         data_gte$GTE2A == "1" | 
+                         data_gte$GTE3A == "1" | 
+                         data_gte$GTE4A == "1")] <- 1
+
+
+data_gte$received <- 0
+data_gte$received[which(data_gte$GTE1B == "1" | 
+                         data_gte$GTE2B == "1" | 
+                         data_gte$GTE3B == "1" | 
+                         data_gte$GTE4B == "1")] <- 1
+
+
+survey_gte <- svydesign(id=~PSU_ID, strata=~STRAT, weights=~IPW , data=data_gte)
+survey_trim <- trimWeights(survey_gte,upper = 30)
+```
+
+# compute participation rate in the survey based on the total HCHS/SOL population
+```{r}
+covariates_orig <- readRDS(visit1_covariates_file)
+covariates_orig$gte_par <- 0
+covariates_orig$gte_par[which(covariates_orig$ID %in% data_gte$ID)] <- 1
+survey_all <- svydesign(id=~PSU_ID, strata=~STRAT, weights=~WEIGHT_FINAL_NORM_OVERALL , data=covariates_orig)
+round(as.matrix(svyciprop(~I(gte_par==1),survey_all,method="lo"))*100,1)
+```
+
+# Text for paper with numbers based on IPW survey estimates: results paragraph 2.
+Overall, `r round(as.matrix(svyciprop(~I(aware==1),survey_trim,method="lo"))[1]*100,1)`% of respondents reported awareness of at least one type of genetic test. Respondents were most likely to report awareness of genetic tests to determine risks of getting disease (`r round(as.matrix(svyciprop(~I(GTE1==1),survey_trim,method="lo"))[1]*100,1)`%) and the likelihood of passing disease to children (`r round(as.matrix(svyciprop(~I(GTE2==1),survey_trim,method="lo"))[1]*100,1)`%), and least likely to know about genetic tests about how diseases should be treated (`r round(as.matrix(svyciprop(~I(GTE3==1),survey_trim,method="lo"))[1]*100,1)`%) or determining drug response (`r round(as.matrix(svyciprop(~I(GTE4==1),survey_trim,method="lo"))[1]*100,1)`%). Few respondents reported ever being offered or receiving the types of genetic tests described in the survey (Figure 1). Only `r round(as.matrix(svyciprop(~I(offered==1),survey_trim,method="lo"))[1]*100,1)`% of respondents reported being offered any of the four types of tests described, and `r round(as.matrix(svyciprop(~I(received==1),survey_trim,method="lo"))[1]*100,1)`% of respondents reported receiving at least one of the tests described. 
+
+
+# Text for paper with numbers based on IPW survey estimates: usefulness rating.
+Based on this:
+
+```{r}
+svymean(~GTE5, design = survey_trim, na.rm = TRUE)
+```
+
+Overall, participants rated the usefulness of genetic testing for managing a person’s health 8.4 (SE 0.05) on average in a 0-11 scale.  
+
+
+
+
+
+
+
+```{r}
+sessionInfo()
+```
+
