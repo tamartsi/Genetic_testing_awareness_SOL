@@ -1,0 +1,138 @@
+---
+title: "Poisson regression of perceived utility of genetic tests"
+output: 
+  html_document:
+    toc: true
+    keep_md: true
+---
+
+```{r,message=FALSE}
+library(tidyverse)
+library(survey)
+library(plyr)
+library(dplyr)
+library(factoextra)
+library(labelled)
+library(tableone)
+library(memisc)
+library(jtools)
+library(Publish)
+library(gtsummary)
+library(flextable)
+```
+
+
+
+# Setting up working directory
+```{r}
+base_path <- "~/Dropbox (Partners HealthCare)/SOL_misc_genetics/survey_gen_test_utilization/20221003_data_code/"
+data_file <- paste0(base_path, "Processed_data/gte_data_set_with_covariates_and_IPW.RData")
+output_dir <- paste0(base_path, "Results")
+```
+
+# Load the data and weight it with IPW (trim the weight at 30)
+
+```{r}
+data_gte <- readRDS(data_file)
+nrow(data_gte)
+hist(data_gte$GTE5)
+
+survey_gte <- svydesign(id=~PSU_ID, strata=~STRAT, weights=~IPW , data=data_gte)
+survey_trim <- trimWeights(survey_gte,upper = 30)
+```
+There are `{r sum(is.na(data_gte$GTE5))}` missing values in the response to the perceived utility question. 
+
+
+# Perform possion regression of percieved utility.
+The responses to the perceived utility question are roughly log-normal. We use Poisson regression, modeling multiplicative effects of the covariates. 
+
+```{r}
+model_utility <- svyglm(GTE5~AGE+SEX+Education+CENTER+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=survey_trim,na.action=na.omit,family=quasipoisson())
+summary(model_utility)
+```
+
+Summarize in a nice table
+```{r}
+tbl_utility <- tbl_regression(model_utility, exponentiate = TRUE)
+tbl_utility %>%
+  as_flex_table() %>%
+  flextable::save_as_docx(path = paste0(output_dir, "/utility_poisson_reg.docx"))
+
+```
+
+# Secondary analysis: stratify by center
+This analysis will allow others, if interested, to check whether some results seem to be driven by a specific center (though not to test this hypothesis).
+
+```{r}
+subset_site <- subset(survey_trim, CENTER == "Miami")
+model_miami <- svyglm(GTE5~AGE+SEX+Education+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_site,na.action=na.omit,family=quasipoisson())
+
+subset_site <- subset(survey_trim, CENTER == "Bronx")
+model_bronx <- svyglm(GTE5~AGE+SEX+Education+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_site,na.action=na.omit,family=quasipoisson())
+
+subset_site <- subset(survey_trim, CENTER == "San Diego")
+model_sandiego <- svyglm(GTE5~AGE+SEX+Education+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_site,na.action=na.omit,family=quasipoisson())
+
+subset_site <- subset(survey_trim, CENTER == "Chicago")
+model_chicago <- svyglm(GTE5~AGE+SEX+Education+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_site,na.action=na.omit,family=quasipoisson())
+
+# merge results and prepare a combined table:
+
+tbl_miami <- tbl_regression(model_miami, exponentiate = TRUE)
+tbl_chicago <- tbl_regression(model_chicago, exponentiate = TRUE)
+tbl_bronx <- tbl_regression(model_bronx, exponentiate = TRUE)
+tbl_sandiego <- tbl_regression(model_sandiego, exponentiate = TRUE)
+
+tbl_merge_center <-
+  tbl_merge(
+    tbls = list(tbl_bronx, tbl_chicago, tbl_miami, tbl_sandiego),
+    tab_spanner = c("**Bronx**", 
+                    "**Chicago**", 
+                    "**Miami**",
+                    "**San Diego**")
+  )
+
+ftbl_merge_center <- as_flex_table(tbl_merge_center)
+
+
+ftbl_merge_center_w <- FitFlextableToPage(ftbl_merge_center)
+flextable::save_as_docx(ftbl_merge_center_w, path = paste0(output_dir, "/perceived utility_reg_by_center.docx"))
+
+
+
+```
+
+
+# Secondary analysis: stratify by center
+This analysis will allow others, if interested, to check whether some results seem to be driven by a specific center (though not to test this hypothesis).
+
+```{r}
+subset_sex <- subset(survey_trim, SEX == "Female")
+model_female <- svyglm(GTE5~AGE+Education+CENTER+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_sex,na.action=na.omit,family=quasipoisson())
+
+subset_sex <- subset(survey_trim, SEX == "Male")
+model_male <- svyglm(GTE5~AGE+Education+CENTER+Income_level+Current_Health_insurance+Physician_Visit+Background+Language_pref+Marital_status+Employment_status+US_BORN,design=subset_sex,na.action=na.omit,family=quasipoisson())
+
+
+tbl_female <- tbl_regression(model_female, exponentiate = TRUE)
+tbl_male <- tbl_regression(model_male, exponentiate = TRUE)
+
+tbl_merge_sex <-
+  tbl_merge(
+    tbls = list(tbl_female, tbl_male),
+    tab_spanner = c("**Women**", 
+                    "**Men**")
+  )
+
+ftbl_merge_sex <- as_flex_table(tbl_merge_sex)
+
+
+ftbl_merge_sex_w <- FitFlextableToPage(ftbl_merge_sex)
+flextable::save_as_docx(ftbl_merge_sex_w, path = paste0(output_dir, "/perceived_utility_reg_by_gender.docx"))
+
+```
+
+```{r}
+sessionInfo()
+```
+
