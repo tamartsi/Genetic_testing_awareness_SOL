@@ -150,6 +150,8 @@ contrast_OR_pval(contrast,model_aware_edu)
 
 # also compute proportion of awareness by education groups:
 svyby(~aware, ~Education,survey_trim, svyciprop)
+# also compute number of individuals aware by group:
+table(data_gte$Education, data_gte$aware)
 
 ```
 
@@ -173,6 +175,7 @@ contrast_OR_pval(contrast,model_aware_center)
 
 # compute proportions:
 svyby(~aware, ~CENTER,survey_trim, svyciprop)
+table(data_gte$CENTER, data_gte$aware)
 ```
 
 Number of complete cases used in the analysis: `r length(model_aware_center$y)`.
@@ -193,6 +196,7 @@ contrast_OR_pval(contrast,model_drug_marital)
 
 # compute proportions:
 svyby(~aware, ~Marital_status,survey_trim, svyciprop)
+table(data_gte$Marital_status, data_gte$aware)
 ```
 
 ## Income comparison
@@ -210,7 +214,7 @@ contrast_OR_pval(contrast,model_aware_income)
 
 # compute proportions:
 svyby(~aware, ~Income_level,survey_trim, svyciprop)
-
+table(data_gte$Income_level, data_gte$aware)
 ```
 
 
@@ -234,6 +238,7 @@ contrast_OR_pval(contrast,model_drug_marital)
 
 # compute proportions:
 svyby(~GTE4, ~Marital_status,survey_trim, svyciprop)
+table(data_gte$Marital_status, data_gte$GTE4)
 ```
 
 # separate versus single
@@ -253,6 +258,7 @@ contrast_OR_pval(contrast,model_drug_marital)
 
 # compute proportions:
 svyby(~GTE4, ~Marital_status,survey_trim, svyciprop)
+table(data_gte$Marital_status, data_gte$GTE4)
 ```
 ## Compute proportions of population groups with awareness - disease risk
 
@@ -260,19 +266,26 @@ svyby(~GTE4, ~Marital_status,survey_trim, svyciprop)
 
 # by sex
 svyby(~GTE1, ~SEX,survey_trim, svyciprop)
+table(data_gte$SEX, data_gte$GTE1)
 
 # by education
 svyby(~GTE1, ~Education,survey_trim, svyciprop)
+table(data_gte$Education, data_gte$GTE1)
 
 # by center
 svyby(~GTE1, ~CENTER,survey_trim, svyciprop)
+table(data_gte$CENTER, data_gte$GTE1)
 
 
 # by income
 svyby(~GTE1, ~Income_level,survey_trim, svyciprop)
+table(data_gte$Income_level, data_gte$GTE1)
+
 
 # by background
 svyby(~GTE1, ~Background,survey_trim, svyciprop)
+table(data_gte$Background, data_gte$GTE1)
+
 ```
 ## Compute proportions of population groups with awareness - risk to children
 
@@ -280,19 +293,24 @@ svyby(~GTE1, ~Background,survey_trim, svyciprop)
 
 # by sex
 svyby(~GTE2, ~SEX,survey_trim, svyciprop)
+table(data_gte$SEX, data_gte$GTE2)
 
 # by education
 svyby(~GTE2, ~Education,survey_trim, svyciprop)
+table(data_gte$Education, data_gte$GTE2)
 
 # by center
 svyby(~GTE2, ~CENTER,survey_trim, svyciprop)
+table(data_gte$CENTER, data_gte$GTE2)
 
 
 # by income
 svyby(~GTE2, ~Income_level,survey_trim, svyciprop)
+table(data_gte$Income_level, data_gte$GTE2)
 
 # by background
 svyby(~GTE2, ~Background,survey_trim, svyciprop)
+table(data_gte$Background, data_gte$GTE2)
 ```
 
 
@@ -303,26 +321,33 @@ svyby(~GTE2, ~Background,survey_trim, svyciprop)
 
 # by sex
 svyby(~GTE3, ~SEX,survey_trim, svyciprop)
+table(data_gte$SEX, data_gte$GTE3)
 
 # by education
 svyby(~GTE3, ~Education,survey_trim, svyciprop)
+table(data_gte$Education, data_gte$GTE3)
+
 
 # by center
 svyby(~GTE3, ~CENTER,survey_trim, svyciprop)
-
+table(data_gte$CENTER, data_gte$GTE3)
 
 # by income
 svyby(~GTE3, ~Income_level,survey_trim, svyciprop)
+table(data_gte$Income_level, data_gte$GTE3)
+
 
 # by background
 svyby(~GTE3, ~Background,survey_trim, svyciprop)
+table(data_gte$Background, data_gte$GTE3)
 
 # by age
 svyby(~GTE3, ~AGE,survey_trim, svyciprop)
-
+table(data_gte$AGE, data_gte$GTE3)
 
 # by employment status
 svyby(~GTE3, ~Employment_status,survey_trim, svyciprop)
+table(data_gte$Employment_status, data_gte$GTE3)
 ```
 
 
@@ -334,29 +359,36 @@ svyby(~GTE3, ~Employment_status,survey_trim, svyciprop)
 
 # by sex
 svyby(~GTE4, ~SEX,survey_trim, svyciprop)
+table(data_gte$SEX, data_gte$GTE4)
 
 # by education
 svyby(~GTE4, ~Education,survey_trim, svyciprop)
+table(data_gte$Education, data_gte$GTE4)
 
 # by center
 svyby(~GTE4, ~CENTER,survey_trim, svyciprop)
-
+table(data_gte$CENTER, data_gte$GTE4)
 
 # by income
 svyby(~GTE4, ~Income_level,survey_trim, svyciprop)
+table(data_gte$Income_level, data_gte$GTE4)
 
 # by background
 svyby(~GTE4, ~Background,survey_trim, svyciprop)
+table(data_gte$Background, data_gte$GTE4)
+
 
 # by age
 svyby(~GTE4, ~AGE,survey_trim, svyciprop)
-
+table(data_gte$AGE, data_gte$GTE4)
 
 # by employment status
 svyby(~GTE4, ~Employment_status,survey_trim, svyciprop)
+table(data_gte$Employment_status, data_gte$GTE4)
 
 # by language preference
 svyby(~GTE4, ~Language_pref,survey_trim, svyciprop)
+table(data_gte$Language_pref, data_gte$GTE4)
 ```
 
 

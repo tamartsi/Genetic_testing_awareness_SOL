@@ -11,6 +11,19 @@ output:
 
 ```r
 library(tidyverse)
+```
+
+```
+## Warning: replacing previous import 'lifecycle::last_warnings' by
+## 'rlang::last_warnings' when loading 'pillar'
+```
+
+```
+## Warning: replacing previous import 'lifecycle::last_warnings' by
+## 'rlang::last_warnings' when loading 'hms'
+```
+
+```r
 library(survey)
 library(plyr)
 library(dplyr)
@@ -220,6 +233,20 @@ svyby(~aware, ~Education,survey_trim, svyciprop)
 ## Masters, doctoral, professional           0.05480584
 ```
 
+```r
+# also compute number of individuals aware by group:
+table(data_gte$Education, data_gte$aware)
+```
+
+```
+##                                  
+##                                      0    1
+##   <12                             1206  798
+##   12                               768  690
+##   >12                              820 1258
+##   Masters, doctoral, professional   69  137
+```
+
 
 ## Miami and Chicago comparison
 
@@ -277,6 +304,19 @@ svyby(~aware, ~CENTER,survey_trim, svyciprop)
 ## San Diego San Diego 0.5838067           0.02250196
 ```
 
+```r
+table(data_gte$CENTER, data_gte$aware)
+```
+
+```
+##            
+##                0    1
+##   Bronx      490  540
+##   Chicago   1253  697
+##   Miami      373  692
+##   San Diego  762  962
+```
+
 Number of complete cases used in the analysis: 5534.
 
 ## Marital status
@@ -322,6 +362,18 @@ svyby(~aware, ~Marital_status,survey_trim, svyciprop)
 ## Separated,divorced,or widow(er)            0.02347220
 ```
 
+```r
+table(data_gte$Marital_status, data_gte$aware)
+```
+
+```
+##                                   
+##                                       0    1
+##   Single                            561  673
+##   Married or living with a partner 1661 1627
+##   Separated,divorced,or widow(er)   654  586
+```
+
 ## Income comparison
 
 ```r
@@ -360,6 +412,20 @@ svyby(~aware, ~Income_level,survey_trim, svyciprop)
 ## $20,001-$40,000     $20,001-$40,000 0.5251300           0.01797876
 ## $40,001-$75,000     $40,001-$75,000 0.6248518           0.02431757
 ## More than $75,000 More than $75,000 0.7324657           0.03627677
+```
+
+```r
+table(data_gte$Income_level, data_gte$aware)
+```
+
+```
+##                    
+##                        0    1
+##   Less than $10,000  331  282
+##   $10,001-$20,000    821  711
+##   $20,001-$40,000   1013  986
+##   $40,001-$75,000    481  558
+##   More than $75,000  151  290
 ```
 
 
@@ -410,6 +476,18 @@ svyby(~GTE4, ~Marital_status,survey_trim, svyciprop)
 ## Separated,divorced,or widow(er)                  NaN
 ```
 
+```r
+table(data_gte$Marital_status, data_gte$GTE4)
+```
+
+```
+##                                   
+##                                       0    1
+##   Single                            937  211
+##   Married or living with a partner 2534  509
+##   Separated,divorced,or widow(er)  1004  162
+```
+
 # separate versus single
 
 
@@ -453,6 +531,18 @@ svyby(~GTE4, ~Marital_status,survey_trim, svyciprop)
 ## Married or living with a partner                 NaN
 ## Separated,divorced,or widow(er)                  NaN
 ```
+
+```r
+table(data_gte$Marital_status, data_gte$GTE4)
+```
+
+```
+##                                   
+##                                       0    1
+##   Single                            937  211
+##   Married or living with a partner 2534  509
+##   Separated,divorced,or widow(er)  1004  162
+```
 ## Compute proportions of population groups with awareness - disease risk
 
 
@@ -465,6 +555,17 @@ svyby(~GTE1, ~SEX,survey_trim, svyciprop)
 ##           SEX      GTE1 se.as.numeric(GTE1)
 ## Female Female 0.4114878                 NaN
 ## Male     Male 0.3942077                 NaN
+```
+
+```r
+table(data_gte$SEX, data_gte$GTE1)
+```
+
+```
+##         
+##             0    1
+##   Female 2322 1377
+##   Male   1350  712
 ```
 
 ```r
@@ -486,6 +587,19 @@ svyby(~GTE1, ~Education,survey_trim, svyciprop)
 ```
 
 ```r
+table(data_gte$Education, data_gte$GTE1)
+```
+
+```
+##                                  
+##                                      0    1
+##   <12                             1511  489
+##   12                               960  497
+##   >12                             1090  985
+##   Masters, doctoral, professional   92  114
+```
+
+```r
 # by center
 svyby(~GTE1, ~CENTER,survey_trim, svyciprop)
 ```
@@ -496,6 +610,19 @@ svyby(~GTE1, ~CENTER,survey_trim, svyciprop)
 ## Chicago     Chicago 0.2536024                 NaN
 ## Miami         Miami 0.5717308          0.02048405
 ## San Diego San Diego 0.3984586          0.02595676
+```
+
+```r
+table(data_gte$CENTER, data_gte$GTE1)
+```
+
+```
+##            
+##                0    1
+##   Bronx      666  363
+##   Chicago   1452  491
+##   Miami      490  575
+##   San Diego 1064  660
 ```
 
 ```r
@@ -510,6 +637,20 @@ svyby(~GTE1, ~Income_level,survey_trim, svyciprop)
 ## $20,001-$40,000     $20,001-$40,000 0.3641384                 NaN
 ## $40,001-$75,000     $40,001-$75,000 0.4731183                 NaN
 ## More than $75,000 More than $75,000 0.6552409                 NaN
+```
+
+```r
+table(data_gte$Income_level, data_gte$GTE1)
+```
+
+```
+##                    
+##                        0    1
+##   Less than $10,000  427  186
+##   $10,001-$20,000   1033  498
+##   $20,001-$40,000   1305  689
+##   $40,001-$75,000    609  429
+##   More than $75,000  191  249
 ```
 
 ```r
@@ -535,6 +676,22 @@ svyby(~GTE1, ~Background,survey_trim, svyciprop)
 ## South American                        0.03611199
 ## More than one/Other heritage          0.05982984
 ```
+
+```r
+table(data_gte$Background, data_gte$GTE1)
+```
+
+```
+##                               
+##                                   0    1
+##   Domician                      248  164
+##   Central American              356  219
+##   Cuban                         261  332
+##   Mexican                      1889  858
+##   Puerto Rican                  563  256
+##   South American                255  169
+##   More than one/Other heritage   85   87
+```
 ## Compute proportions of population groups with awareness - risk to children
 
 
@@ -547,6 +704,17 @@ svyby(~GTE2, ~SEX,survey_trim, svyciprop)
 ##           SEX      GTE2 se.as.numeric(GTE2)
 ## Female Female 0.4158040                 NaN
 ## Male     Male 0.4260088                 NaN
+```
+
+```r
+table(data_gte$SEX, data_gte$GTE2)
+```
+
+```
+##         
+##             0    1
+##   Female 2113 1362
+##   Male   1216  697
 ```
 
 ```r
@@ -568,6 +736,19 @@ svyby(~GTE2, ~Education,survey_trim, svyciprop)
 ```
 
 ```r
+table(data_gte$Education, data_gte$GTE2)
+```
+
+```
+##                                  
+##                                      0    1
+##   <12                             1304  511
+##   12                               860  503
+##   >12                             1055  935
+##   Masters, doctoral, professional   96  105
+```
+
+```r
 # by center
 svyby(~GTE2, ~CENTER,survey_trim, svyciprop)
 ```
@@ -578,6 +759,19 @@ svyby(~GTE2, ~CENTER,survey_trim, svyciprop)
 ## Chicago     Chicago 0.3063946                 NaN
 ## Miami         Miami 0.5101788                 NaN
 ## San Diego San Diego 0.4404479                 NaN
+```
+
+```r
+table(data_gte$CENTER, data_gte$GTE2)
+```
+
+```
+##            
+##                0    1
+##   Bronx      635  371
+##   Chicago   1139  474
+##   Miami      544  505
+##   San Diego 1011  709
 ```
 
 ```r
@@ -592,6 +786,20 @@ svyby(~GTE2, ~Income_level,survey_trim, svyciprop)
 ## $20,001-$40,000     $20,001-$40,000 0.4013490                 NaN
 ## $40,001-$75,000     $40,001-$75,000 0.5064143                 NaN
 ## More than $75,000 More than $75,000 0.5891571                 NaN
+```
+
+```r
+table(data_gte$Income_level, data_gte$GTE2)
+```
+
+```
+##                    
+##                        0    1
+##   Less than $10,000  379  193
+##   $10,001-$20,000    924  498
+##   $20,001-$40,000   1170  696
+##   $40,001-$75,000    557  419
+##   More than $75,000  203  214
 ```
 
 ```r
@@ -618,6 +826,22 @@ svyby(~GTE2, ~Background,survey_trim, svyciprop)
 ## More than one/Other heritage                 NaN
 ```
 
+```r
+table(data_gte$Background, data_gte$GTE2)
+```
+
+```
+##                               
+##                                   0    1
+##   Domician                      252  152
+##   Central American              328  210
+##   Cuban                         295  292
+##   Mexican                      1633  908
+##   Puerto Rican                  489  258
+##   South American                239  155
+##   More than one/Other heritage   82   79
+```
+
 
 
 ## Compute proportions of population groups with awareness - personalized treatment
@@ -632,6 +856,17 @@ svyby(~GTE3, ~SEX,survey_trim, svyciprop)
 ##           SEX      GTE3 se.as.numeric(GTE3)
 ## Female Female 0.1589712                 NaN
 ## Male     Male 0.1745237                 NaN
+```
+
+```r
+table(data_gte$SEX, data_gte$GTE3)
+```
+
+```
+##         
+##             0    1
+##   Female 2909  554
+##   Male   1585  320
 ```
 
 ```r
@@ -653,6 +888,19 @@ svyby(~GTE3, ~Education,survey_trim, svyciprop)
 ```
 
 ```r
+table(data_gte$Education, data_gte$GTE3)
+```
+
+```
+##                                  
+##                                      0    1
+##   <12                             1575  231
+##   12                              1149  208
+##   >12                             1611  374
+##   Masters, doctoral, professional  142   58
+```
+
+```r
 # by center
 svyby(~GTE3, ~CENTER,survey_trim, svyciprop)
 ```
@@ -663,6 +911,19 @@ svyby(~GTE3, ~CENTER,survey_trim, svyciprop)
 ## Chicago     Chicago 0.1494542                 NaN
 ## Miami         Miami 0.1626774                 NaN
 ## San Diego San Diego 0.1693284                 NaN
+```
+
+```r
+table(data_gte$CENTER, data_gte$GTE3)
+```
+
+```
+##            
+##                0    1
+##   Bronx      800  203
+##   Chicago   1359  239
+##   Miami      862  188
+##   San Diego 1473  244
 ```
 
 ```r
@@ -677,6 +938,20 @@ svyby(~GTE3, ~Income_level,survey_trim, svyciprop)
 ## $20,001-$40,000     $20,001-$40,000 0.1428343                 NaN
 ## $40,001-$75,000     $40,001-$75,000 0.1830376                 NaN
 ## More than $75,000 More than $75,000 0.2710199                 NaN
+```
+
+```r
+table(data_gte$Income_level, data_gte$GTE3)
+```
+
+```
+##                    
+##                        0    1
+##   Less than $10,000  480   92
+##   $10,001-$20,000   1191  223
+##   $20,001-$40,000   1577  279
+##   $40,001-$75,000    806  166
+##   More than $75,000  324   97
 ```
 
 ```r
@@ -704,6 +979,22 @@ svyby(~GTE3, ~Background,survey_trim, svyciprop)
 ```
 
 ```r
+table(data_gte$Background, data_gte$GTE3)
+```
+
+```
+##                               
+##                                   0    1
+##   Domician                      324   79
+##   Central American              449   88
+##   Cuban                         473  112
+##   Mexican                      2171  360
+##   Puerto Rican                  602  138
+##   South American                341   53
+##   More than one/Other heritage  121   40
+```
+
+```r
 # by age
 svyby(~GTE3, ~AGE,survey_trim, svyciprop)
 ```
@@ -713,6 +1004,18 @@ svyby(~GTE3, ~AGE,survey_trim, svyciprop)
 ## <40     <40 0.1429304                 NaN
 ## 41-60 41-60 0.1813112                 NaN
 ## 61<     61< 0.1691693                 NaN
+```
+
+```r
+table(data_gte$AGE, data_gte$GTE3)
+```
+
+```
+##        
+##            0    1
+##   <40    797  137
+##   41-60 2069  416
+##   61<   1628  321
 ```
 
 ```r
@@ -731,6 +1034,18 @@ svyby(~GTE3, ~Employment_status,survey_trim, svyciprop)
 ## Employed full-time(>35 hours/week)  0.1576054                 NaN
 ```
 
+```r
+table(data_gte$Employment_status, data_gte$GTE3)
+```
+
+```
+##                                      
+##                                          0    1
+##   Retired/not currently employed      1838  359
+##   Employed part-time(<=35 hours/week) 1021  215
+##   Employed full-time(>35 hours/week)  1620  297
+```
+
 
 
 
@@ -746,6 +1061,17 @@ svyby(~GTE4, ~SEX,survey_trim, svyciprop)
 ##           SEX      GTE4 se.as.numeric(GTE4)
 ## Female Female 0.1601912                 NaN
 ## Male     Male 0.1674058                 NaN
+```
+
+```r
+table(data_gte$SEX, data_gte$GTE4)
+```
+
+```
+##         
+##             0    1
+##   Female 2895  569
+##   Male   1584  316
 ```
 
 ```r
@@ -767,6 +1093,19 @@ svyby(~GTE4, ~Education,survey_trim, svyciprop)
 ```
 
 ```r
+table(data_gte$Education, data_gte$GTE4)
+```
+
+```
+##                                  
+##                                      0    1
+##   <12                             1554  243
+##   12                              1152  207
+##   >12                             1619  368
+##   Masters, doctoral, professional  137   64
+```
+
+```r
 # by center
 svyby(~GTE4, ~CENTER,survey_trim, svyciprop)
 ```
@@ -777,6 +1116,19 @@ svyby(~GTE4, ~CENTER,survey_trim, svyciprop)
 ## Chicago     Chicago 0.1520174                 NaN
 ## Miami         Miami 0.1467026                 NaN
 ## San Diego San Diego 0.1996745                 NaN
+```
+
+```r
+table(data_gte$CENTER, data_gte$GTE4)
+```
+
+```
+##            
+##                0    1
+##   Bronx      834  177
+##   Chicago   1342  242
+##   Miami      886  167
+##   San Diego 1417  299
 ```
 
 ```r
@@ -791,6 +1143,20 @@ svyby(~GTE4, ~Income_level,survey_trim, svyciprop)
 ## $20,001-$40,000     $20,001-$40,000 0.1422149                 NaN
 ## $40,001-$75,000     $40,001-$75,000 0.1782495                 NaN
 ## More than $75,000 More than $75,000 0.2540401                 NaN
+```
+
+```r
+table(data_gte$Income_level, data_gte$GTE4)
+```
+
+```
+##                    
+##                        0    1
+##   Less than $10,000  474   95
+##   $10,001-$20,000   1173  236
+##   $20,001-$40,000   1582  276
+##   $40,001-$75,000    812  163
+##   More than $75,000  325   97
 ```
 
 ```r
@@ -818,6 +1184,22 @@ svyby(~GTE4, ~Background,survey_trim, svyciprop)
 ```
 
 ```r
+table(data_gte$Background, data_gte$GTE4)
+```
+
+```
+##                               
+##                                   0    1
+##   Domician                      346   63
+##   Central American              443   88
+##   Cuban                         490   96
+##   Mexican                      2109  414
+##   Puerto Rican                  616  128
+##   South American                340   53
+##   More than one/Other heritage  121   40
+```
+
+```r
 # by age
 svyby(~GTE4, ~AGE,survey_trim, svyciprop)
 ```
@@ -827,6 +1209,18 @@ svyby(~GTE4, ~AGE,survey_trim, svyciprop)
 ## <40     <40 0.1625295                 NaN
 ## 41-60 41-60 0.1724178                 NaN
 ## 61<     61< 0.1505052                 NaN
+```
+
+```r
+table(data_gte$AGE, data_gte$GTE4)
+```
+
+```
+##        
+##            0    1
+##   <40    779  150
+##   41-60 2072  409
+##   61<   1628  326
 ```
 
 ```r
@@ -846,6 +1240,18 @@ svyby(~GTE4, ~Employment_status,survey_trim, svyciprop)
 ```
 
 ```r
+table(data_gte$Employment_status, data_gte$GTE4)
+```
+
+```
+##                                      
+##                                          0    1
+##   Retired/not currently employed      1833  362
+##   Employed part-time(<=35 hours/week) 1033  202
+##   Employed full-time(>35 hours/week)  1597  319
+```
+
+```r
 # by language preference
 svyby(~GTE4, ~Language_pref,survey_trim, svyciprop)
 ```
@@ -854,6 +1260,17 @@ svyby(~GTE4, ~Language_pref,survey_trim, svyciprop)
 ##         Language_pref      GTE4 se.as.numeric(GTE4)
 ## Spanish       Spanish 0.1461173                 NaN
 ## English       English 0.2144807                 NaN
+```
+
+```r
+table(data_gte$Language_pref, data_gte$GTE4)
+```
+
+```
+##          
+##              0    1
+##   Spanish 3703  680
+##   English  776  205
 ```
 
 
