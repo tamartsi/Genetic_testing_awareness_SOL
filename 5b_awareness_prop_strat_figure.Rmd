@@ -1,0 +1,128 @@
+---
+title: "Computing proportions of individuals aware of genetic tests"
+output: 
+  html_document:
+    toc: true
+    keep_md: true
+---
+
+
+```{r}
+library(tidyverse)
+library(survey)
+library(plyr)
+library(dplyr)
+library(factoextra)
+library(labelled)
+library(memisc)
+library(jtools)
+library(Publish)
+library(gtsummary)
+library(flextable)
+library(ggpubr)
+```
+
+# Setting up working directory
+```{r}
+base_path <- "~/Dropbox (Partners HealthCare)/SOL_misc_genetics/survey_gen_test_utilization/20221003_data_code/"
+data_file <- paste0(base_path, "Processed_data/gte_data_set_with_covariates_and_IPW.RData")
+output_dir <- paste0(base_path, "Results")
+```
+
+# Loading the data and weight the data with IPW (trim the weights at 30)
+We need to define the composite genetic testing awareness variable (we did not keep it in the data frame generated in earlier reports)
+```{r}
+data_gte <- readRDS(data_file)
+nrow(data_gte)
+
+data_gte$aware <- NA
+data_gte$aware[which(data_gte$GTE1 == 1 | 
+                         data_gte$GTE2 == 1 | 
+                         data_gte$GTE3 == 1 | 
+                         data_gte$GTE4 == 1)] <- 1
+data_gte$aware[which(is.na(data_gte$aware) & 
+                         (data_gte$GTE1 == 0 | 
+                         data_gte$GTE2 == 0 | 
+                         data_gte$GTE3 == 0 | 
+                         data_gte$GTE4 == 0))] <- 0
+
+table(data_gte$aware)
+survey_gte <- svydesign(id=~PSU_ID, strata=~STRAT, weights=~IPW , data=data_gte)
+survey_trim <- trimWeights(survey_gte,upper = 30)
+```
+
+# Compute survey-weighted proportions of awareness of the composite outcome across strata
+One of the reviewers has a nice suggestion to make a figure displaying proportions of individuals aware of genetic tests, stratified by education, income, and study site (center).
+We here generate the data for that (also generated as part of script 5a) and make a figure (though we will re-create a figure for the paper to match the style of the other paper figure).
+
+
+```{r}
+vars <- c("Education", 
+          "CENTER", 
+          "Income_level")
+
+res_list <- vector(mode = "list", length = length(vars))
+
+for (i in 1:length(vars)){
+  var <- vars[i]
+  cur_prop <- svyby(~aware, as.formula(paste0("~", var)),survey_trim, svyciprop)
+  cur_est <- round(cur_prop$aware,2)
+  cur_se <- cur_prop[["se.as.numeric(aware)"]]
+  cur_res <- data.frame(var = var, 
+                        stratum = cur_prop[[var]], 
+                        prop_aware = cur_est,
+                        SE = cur_se,
+                        CI_low = cur_est-1.96*cur_se,
+                        CI_high = cur_est + 1.96*cur_se)
+  res_list[[i]] <- cur_res
+}
+
+res <- do.call(rbind, res_list)
+
+
+```
+
+Save in a file:
+```{r}
+write.csv(res, file = paste0(output_dir, "/proportion_aware_education_income_center_for_figure.csv"))
+```
+
+Figure -- by variables
+```{r}
+p_edu <- ggplot(res[which(res$var == "Education"),], aes(x=stratum, y=prop_aware, fill=stratum)) + 
+      geom_bar(stat="identity", position=position_dodge(0.9))+ 
+      geom_errorbar(aes(ymin=CI_low, ymax=CI_high), width=.2, position=position_dodge(.9)) +
+      scale_fill_manual(values=c("#fec44f", "#2b8cbe","#a6bddb", "#2ca25f")) +
+      theme_minimal() + xlab("") + ylab("Proportion aware") + 
+      theme(legend.position = "none") +
+      theme(axis.text.x = element_text(angle = 60, vjust=1, hjust =1)) + coord_flip()
+
+p_center <- ggplot(res[which(res$var == "CENTER"),], aes(x=stratum, y=prop_aware, fill=stratum)) + 
+      geom_bar(stat="identity", position=position_dodge(0.9))+ 
+      geom_errorbar(aes(ymin=CI_low, ymax=CI_high), width=.2, position=position_dodge(.9)) +
+      scale_fill_manual(values=c("#fec44f", "#2b8cbe","#a6bddb", "#2ca25f")) +
+      theme_minimal() + xlab("") + ylab("Proportion aware") + 
+      theme(legend.position = "none") +
+      theme(axis.text.x = element_text(angle = 60, vjust=1, hjust =1)) + coord_flip()
+
+p_income <- ggplot(res[which(res$var == "Income_level"),], aes(x=stratum, y=prop_aware, fill=stratum)) + 
+      geom_bar(stat="identity", position=position_dodge(0.9))+ 
+      geom_errorbar(aes(ymin=CI_low, ymax=CI_high), width=.2, position=position_dodge(.9)) +
+      scale_fill_manual(values=c("#fec44f", "#2b8cbe","#a6bddb", "#2ca25f", "#99d8c9")) +
+      theme_minimal() + xlab("") + ylab("Proportion aware") + 
+      theme(legend.position = "none") +
+      theme(axis.text.x = element_text(angle = 60, vjust=1, hjust =1)) + coord_flip()
+
+
+fig <- ggarrange(p_edu, p_center, p_income, ncol = 1, align = "v")
+
+ggexport(fig, filename = file.path(output_dir, "awareness_edu_enter_income.pdf"))
+
+```
+
+
+
+# version:
+```{r}
+sessionInfo()
+```

@@ -26,10 +26,10 @@ library(Publish)
 
 # Setting up working directory
 ```{r}
-base_path <- "~/Dropbox (Partners HealthCare)/SOL_misc_genetics/survey_gen_test_utilization/20210917_data_code/"
-data_file <- paste0(base_path, "Processed_data/20210918_gte_data_set_with_covariates_and_IPW.RData")
+base_path <- "~/Dropbox (Partners HealthCare)/SOL_misc_genetics/survey_gen_test_utilization/20221003_data_code/"
+data_file <- paste0(base_path, "Processed_data/gte_data_set_with_covariates_and_IPW.RData")
 output_dir <- paste0(base_path, "Results")
-visit1_covariates_file <- paste0(base_path, "/Processed_data/20210917_organized_visit1_covariates.RData")
+visit1_covariates_file <- paste0(base_path, "/Processed_data/organized_visit1_covariates.RData")
 ```
 
 
@@ -89,7 +89,9 @@ round(as.matrix(svyciprop(~I(gte_par==1),survey_all,method="lo"))*100,1)
 ```
 
 # Text for paper with numbers based on IPW survey estimates: results paragraph 2.
-Overall, `r round(as.matrix(svyciprop(~I(aware==1),survey_trim,method="lo"))[1]*100,1)`% of respondents reported awareness of at least one type of genetic test. Respondents were most likely to report awareness of genetic tests to determine risks of getting disease (`r round(as.matrix(svyciprop(~I(GTE1==1),survey_trim,method="lo"))[1]*100,1)`%) and the likelihood of passing disease to children (`r round(as.matrix(svyciprop(~I(GTE2==1),survey_trim,method="lo"))[1]*100,1)`%), and least likely to know about genetic tests about how diseases should be treated (`r round(as.matrix(svyciprop(~I(GTE3==1),survey_trim,method="lo"))[1]*100,1)`%) or determining drug response (`r round(as.matrix(svyciprop(~I(GTE4==1),survey_trim,method="lo"))[1]*100,1)`%). Few respondents reported ever being offered or receiving the types of genetic tests described in the survey (Figure 1). Only `r round(as.matrix(svyciprop(~I(offered==1),survey_trim,method="lo"))[1]*100,1)`% of respondents reported being offered any of the four types of tests described, and `r round(as.matrix(svyciprop(~I(received==1),survey_trim,method="lo"))[1]*100,1)`% of respondents reported receiving at least one of the tests described. 
+Overall, of `r nrow(data_gte)` survey respondents,`r sum(data_gte$aware)` (weighted percentage `r round(as.matrix(svyciprop(~I(aware==1),survey_trim,method="lo"))[1]*100,1)`%) of respondents reported awareness of at least one type of genetic test. Respondents were most likely to report awareness of genetic tests to determine risks of getting disease (`r sum(data_gte$GTE1 == 1, na.rm = TRUE)` individuals, weighted percentage `r round(as.matrix(svyciprop(~I(GTE1==1),survey_trim,method="lo"))[1]*100,1)`%) and the likelihood of passing disease to children (`r sum(data_gte$GTE2 == 1, na.rm = TRUE)` individuals, weighted percentage `r round(as.matrix(svyciprop(~I(GTE2==1),survey_trim,method="lo"))[1]*100,1)`%), and least likely to know about genetic tests about how diseases should be treated (`r sum(data_gte$GTE3 == 1, na.rm = TRUE)` individuals, weighted percentage `r round(as.matrix(svyciprop(~I(GTE3==1),survey_trim,method="lo"))[1]*100,1)`%) or determining drug response (`r sum(data_gte$GTE4 == 1, na.rm = TRUE)` individuals, weighted percentage `r round(as.matrix(svyciprop(~I(GTE4==1),survey_trim,method="lo"))[1]*100,1)`%). 
+
+Few respondents reported ever being offered or receiving the types of genetic tests described in the survey (Figure 1). Only `r sum(data_gte$offered == 1, na.rm = TRUE)` individuals (weighted percentage `r round(as.matrix(svyciprop(~I(offered==1),survey_trim,method="lo"))[1]*100,1)`%) of respondents reported being offered any of the four types of tests described, and `r sum(data_gte$received == 1, na.rm = TRUE)` individuals (weighted percentage `r round(as.matrix(svyciprop(~I(received==1),survey_trim,method="lo"))[1]*100,1)`%) of respondents reported receiving at least one of the tests described. 
 
 
 # Text for paper with numbers based on IPW survey estimates: usefulness rating.
